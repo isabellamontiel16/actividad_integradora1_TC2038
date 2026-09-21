@@ -107,41 +107,64 @@ void mostrarBusqueda(const string& transmision, const string& codigo) {
 
 // PARTE 2: Palindromo mas largo.
 
-// Expande desde el centro mientras los caracteres sean iguales.
-void expandirCentro(const string& texto, int izquierda, int derecha,
-    int& mejorInicio, int& mejorFin) {
-    while (izquierda >= 0 &&
-        derecha < static_cast<int>(texto.length()) &&
-        texto[izquierda] == texto[derecha]) {
-        izquierda--;
-        derecha++;
+pair<int, int> palindromoMasLargo(const string& texto) {
+    if (texto.empty()) {
+        return {0, 0};
     }
 
-    izquierda++;
-    derecha--;
+    // Transformamos el texto para manejar de la misma forma
+    // palindromos de longitud par e impar.
+    string transformado = "^";
 
-    if ((derecha - izquierda) > (mejorFin - mejorInicio)) {
-        mejorInicio = izquierda;
-        mejorFin = derecha;
-    }
-}
-
-/*Busca el palindromo mas largo probando centros pares e impares.
-Regresa posiciones iniciando en 1. Complejidad: O(n^2), memoria O(1).*/
-void palindromoMasLargo(const string& texto, int& inicio, int& fin) {
-    int mejorInicio = 0;
-    int mejorFin = 0;
-
-    for (int i = 0; i < static_cast<int>(texto.length()); i++) {
-        // Palindromo impar, por ejemplo ABA.
-        expandirCentro(texto, i, i, mejorInicio, mejorFin);
-
-        // Palindromo par, por ejemplo ABBA.
-        expandirCentro(texto, i, i + 1, mejorInicio, mejorFin);
+    for (char c : texto) {
+        transformado += "#";
+        transformado += c;
     }
 
-    inicio = mejorInicio + 1;
-    fin = mejorFin + 1;
+    transformado += "#$";
+
+    int n = static_cast<int>(transformado.length());
+    int* p = new int[n]();
+
+    int centro = 0;
+    int derecha = 0;
+
+    int mejorCentro = 0;
+    int mejorLongitud = 0;
+
+    for (int i = 1; i < n - 1; i++) {
+        int espejo = 2 * centro - i;
+
+        if (i < derecha) {
+            p[i] = min(derecha - i, p[espejo]);
+        }
+
+        // Expande mientras los caracteres alrededor sean iguales.
+        while (transformado[i + 1 + p[i]] ==
+               transformado[i - 1 - p[i]]) {
+            p[i]++;
+        }
+
+        // Actualiza el palindromo que llega mas a la derecha.
+        if (i + p[i] > derecha) {
+            centro = i;
+            derecha = i + p[i];
+        }
+
+        // Guarda el palindromo mas largo encontrado.
+        if (p[i] > mejorLongitud) {
+            mejorLongitud = p[i];
+            mejorCentro = i;
+        }
+    }
+
+    int inicio = (mejorCentro - mejorLongitud) / 2;
+    int fin = inicio + mejorLongitud - 1;
+
+    delete[] p;
+
+    // Se suma 1 porque la actividad pide posiciones desde 1.
+    return {inicio + 1, fin + 1};
 }
 
 // PARTE 3: Substring comun mas largo.
@@ -212,12 +235,12 @@ int main() {
     int inicio;
     int fin;
 
-    // Parte 2: Encuentra el palindromo mas largo de cada transmision.
-    palindromoMasLargo(transmission1, inicio, fin);
-    cout << inicio << " " << fin << endl;
+   // Parte 2: Encuentra el palindromo mas largo de cada transmision.
+    pair<int, int> pal1 = palindromoMasLargo(transmission1);
+    pair<int, int> pal2 = palindromoMasLargo(transmission2);
 
-    palindromoMasLargo(transmission2, inicio, fin);
-    cout << inicio << " " << fin << endl;
+    cout << pal1.first << " " << pal1.second << endl;
+    cout << pal2.first << " " << pal2.second << endl;
 
     // Parte 3: Encuentra el substring comun mas largo.
     substringComunMasLargo(transmission1, transmission2, inicio, fin);
