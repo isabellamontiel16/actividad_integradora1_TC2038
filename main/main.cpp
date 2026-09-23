@@ -1,14 +1,29 @@
+/*Descripcion: Programa que analiza archivos de transmision utilizando
+los algoritmos KMP, Manacher y programacion dinamica.
+
+Autores: 
+- Isabella Montiel - A01278286
+- Gerardo Martínez Carbajal - A01713474
+- Cristhian Viery Maida Suarez - A01668790
+
+Fecha de modificacion: 23/09/2026. */
+
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <utility>
+#include <algorithm>
 
 using namespace std;
 
-// Lee el contenido del archivo ignorando saltos de linea. Complejidad: O(n).
+/*Lee el contenido de un archivo e ignora los saltos de linea.
+Recibe el nombre del archivo que se desea leer.
+Retorna una cadena con el contenido del archivo.
+Complejidad: O(n).*/
 string leerArchivo(const string& nombreArchivo) {
     ifstream archivo(nombreArchivo);
-    string contenido;
-    char caracter;
+    string contenido = "";
+    char caracter = '\0';
 
     if (!archivo.is_open()) {
         cerr << "Error al abrir " << nombreArchivo << endl;
@@ -27,7 +42,11 @@ string leerArchivo(const string& nombreArchivo) {
 
 // PARTE 1: Busqueda de codigos maliciosos con KMP.
 
-// Construye el arreglo LPS usado por KMP. Complejidad: O(m).
+/*Construye el arreglo LPS utilizado por el algoritmo KMP.
+Recibe el patron que se desea buscar y el arreglo donde se
+almacenan las longitudes de prefijos y sufijos.
+No retorna ningun valor.
+Complejidad: O(m).*/
 void construirLPS(const string& patron, int lps[]) {
     int longitud = 0;
     int i = 1;
@@ -52,8 +71,9 @@ void construirLPS(const string& patron, int lps[]) {
     }
 }
 
-/*Busca la primera aparicion de un patron dentro de un texto usando KMP.
-Regresa la posicion iniciando en 1, o -1 si no se encuentra.
+/*Busca la primera aparicion de un patron dentro de un texto utilizando KMP.
+Recibe el texto donde se realiza la busqueda y el patron que se desea buscar.
+Retorna la posicion inicial comenzando en 1 o -1 si el patron no se encuentra.
 Complejidad: O(n + m).*/
 int buscarKMP(const string& texto, const string& patron) {
     if (patron.empty()) {
@@ -93,7 +113,10 @@ int buscarKMP(const string& texto, const string& patron) {
     return -1;
 }
 
-// Imprime "true posicion" si encuentra el codigo, o "false" si no.
+/*Busca un codigo dentro de una transmision y muestra el resultado.
+Recibe la transmision donde se realiza la busqueda y el codigo a buscar.
+No retorna ningun valor.
+Complejidad: O(n + m).*/
 void mostrarBusqueda(const string& transmision, const string& codigo) {
     int posicion = buscarKMP(transmision, codigo);
 
@@ -105,30 +128,31 @@ void mostrarBusqueda(const string& transmision, const string& codigo) {
     }
 }
 
-// PARTE 2: Palindromo mas largo.
+// PARTE 2: Palindromo mas largo con Manacher.
 
+/*Encuentra el palindromo mas largo utilizando el algoritmo de Manacher.
+Recibe el texto en el que se desea buscar el palindromo.
+Retorna un par con las posiciones inicial y final comenzando en 1.
+Complejidad: O(n).*/
 pair<int, int> palindromoMasLargo(const string& texto) {
     if (texto.empty()) {
         return {0, 0};
     }
 
-    // Transformamos el texto para manejar de la misma forma
-    // palindromos de longitud par e impar.
     string transformado = "^";
 
-    for (char c : texto) {
+    for (char caracter : texto) {
         transformado += "#";
-        transformado += c;
+        transformado += caracter;
     }
 
     transformado += "#$";
 
     int n = static_cast<int>(transformado.length());
-    int* p = new int[n]();
+    int* radios = new int[n]();
 
     int centro = 0;
     int derecha = 0;
-
     int mejorCentro = 0;
     int mejorLongitud = 0;
 
@@ -136,24 +160,21 @@ pair<int, int> palindromoMasLargo(const string& texto) {
         int espejo = 2 * centro - i;
 
         if (i < derecha) {
-            p[i] = min(derecha - i, p[espejo]);
+            radios[i] = min(derecha - i, radios[espejo]);
         }
 
-        // Expande mientras los caracteres alrededor sean iguales.
-        while (transformado[i + 1 + p[i]] ==
-               transformado[i - 1 - p[i]]) {
-            p[i]++;
+        while (transformado[i + 1 + radios[i]] ==
+               transformado[i - 1 - radios[i]]) {
+            radios[i]++;
         }
 
-        // Actualiza el palindromo que llega mas a la derecha.
-        if (i + p[i] > derecha) {
+        if (i + radios[i] > derecha) {
             centro = i;
-            derecha = i + p[i];
+            derecha = i + radios[i];
         }
 
-        // Guarda el palindromo mas largo encontrado.
-        if (p[i] > mejorLongitud) {
-            mejorLongitud = p[i];
+        if (radios[i] > mejorLongitud) {
+            mejorLongitud = radios[i];
             mejorCentro = i;
         }
     }
@@ -161,23 +182,22 @@ pair<int, int> palindromoMasLargo(const string& texto) {
     int inicio = (mejorCentro - mejorLongitud) / 2;
     int fin = inicio + mejorLongitud - 1;
 
-    delete[] p;
+    delete[] radios;
 
-    // Se suma 1 porque la actividad pide posiciones desde 1.
     return {inicio + 1, fin + 1};
 }
 
 // PARTE 3: Substring comun mas largo.
 
-/*
-Usa programacion dinamica para encontrar el substring comun mas largo.
-Solo guarda dos filas para reducir memoria.
-Complejidad: O(n * m), memoria O(m).
-*/
+/*Encuentra el substring comun mas largo utilizando programacion dinamica.
+Recibe los dos textos que se desean comparar y las variables donde se
+guardan las posiciones inicial y final del substring en el primer texto.
+No retorna ningun valor.
+Complejidad: O(n * m) en tiempo y O(m) en memoria.*/
 void substringComunMasLargo(const string& texto1, const string& texto2,
     int& inicio, int& fin) {
-    int n = texto1.length();
-    int m = texto2.length();
+    int n = static_cast<int>(texto1.length());
+    int m = static_cast<int>(texto2.length());
 
     int* anterior = new int[m + 1]();
     int* actual = new int[m + 1]();
@@ -216,15 +236,17 @@ void substringComunMasLargo(const string& texto1, const string& texto2,
     delete[] actual;
 }
 
+/*Ejecuta las tres partes de la actividad utilizando los cinco archivos
+de entrada y muestra los resultados requeridos.
+No recibe parametros.
+Retorna 0 cuando el programa termina correctamente.*/
 int main() {
-    // Los nombres son fijos porque no deben pedirse al usuario.
     string transmission1 = leerArchivo("transmission1.txt");
     string transmission2 = leerArchivo("transmission2.txt");
     string mcode1 = leerArchivo("mcode1.txt");
     string mcode2 = leerArchivo("mcode2.txt");
     string mcode3 = leerArchivo("mcode3.txt");
 
-    // Parte 1: Busca los tres codigos en ambas transmisiones.
     mostrarBusqueda(transmission1, mcode1);
     mostrarBusqueda(transmission1, mcode2);
     mostrarBusqueda(transmission1, mcode3);
@@ -232,17 +254,15 @@ int main() {
     mostrarBusqueda(transmission2, mcode2);
     mostrarBusqueda(transmission2, mcode3);
 
-    int inicio;
-    int fin;
+    pair<int, int> palindromo1 = palindromoMasLargo(transmission1);
+    pair<int, int> palindromo2 = palindromoMasLargo(transmission2);
 
-   // Parte 2: Encuentra el palindromo mas largo de cada transmision.
-    pair<int, int> pal1 = palindromoMasLargo(transmission1);
-    pair<int, int> pal2 = palindromoMasLargo(transmission2);
+    cout << palindromo1.first << " " << palindromo1.second << endl;
+    cout << palindromo2.first << " " << palindromo2.second << endl;
 
-    cout << pal1.first << " " << pal1.second << endl;
-    cout << pal2.first << " " << pal2.second << endl;
+    int inicio = 0;
+    int fin = 0;
 
-    // Parte 3: Encuentra el substring comun mas largo.
     substringComunMasLargo(transmission1, transmission2, inicio, fin);
     cout << inicio << " " << fin << endl;
 
